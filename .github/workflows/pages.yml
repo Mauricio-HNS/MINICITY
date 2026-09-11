@@ -21,16 +21,16 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Inject autonomous society simulation
+      - name: Inject articulated human city simulation
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re, os
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          s=re.sub(r'<script[^>]*(standalone-map\\.js|map-enhance\\.js|visual-map\\.js|three-map\\.js|three\\.min\\.js|minicity-simulation\\.js)[^>]*></script>\\s*','',s)
+          s=re.sub(r'<script[^>]*(standalone-map\\.js|map-enhance\\.js|visual-map\\.js|three-map\\.js|three\\.min\\.js|minicity-simulation\\.js|human-city\\.js)[^>]*></script>\\s*','',s)
           version=os.environ.get('GITHUB_SHA','latest')
-          s=s.replace('</body>',f'<script src="minicity-simulation.js?v={version}"></script>\\n</body>')
+          s=s.replace('</body>',f'<script src="human-city.js?v={version}"></script>\\n</body>')
           p.write_text(s,encoding='utf-8')
           PY
       - name: Upload artifact
