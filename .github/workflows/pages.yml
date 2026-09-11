@@ -21,17 +21,15 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Inject 3D simulation
+      - name: Inject actual 3D simulation
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          for marker in ['standalone-map.js','map-enhance.js','visual-map.js','three.min.js']:
-              import re
-              s=re.sub(r'<script[^>]*'+re.escape(marker)+r'[^>]*></script>\s*','',s)
-          inject='<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>\n<script src="three-map.js?v=1"></script>\n'
-          s=s.replace('</body>',inject+'</body>')
+          s=re.sub(r'<script[^>]*(standalone-map\.js|map-enhance\.js|visual-map\.js|three-map\.js|three\.min\.js)[^>]*></script>\s*','',s)
+          s=s.replace('</body>','<script src="standalone-map.js?v=6"></script>\n</body>')
           p.write_text(s,encoding='utf-8')
           PY
       - name: Upload artifact
