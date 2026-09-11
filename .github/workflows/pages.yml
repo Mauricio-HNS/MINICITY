@@ -25,11 +25,12 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
+          import re, os
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
           s=re.sub(r'<script[^>]*(standalone-map\.js|map-enhance\.js|visual-map\.js|three-map\.js|three\.min\.js)[^>]*></script>\s*','',s)
-          s=s.replace('</body>','<script src="standalone-map.js?v=6"></script>\n</body>')
+          version=os.environ.get('GITHUB_SHA','latest')
+          s=s.replace('</body>',f'<script src="standalone-map.js?v={version}"></script>\n</body>')
           p.write_text(s,encoding='utf-8')
           PY
       - name: Upload artifact
