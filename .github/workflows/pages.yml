@@ -22,14 +22,15 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Inject interactive map
-        run: python3 - <<'PY'
+        run: |
+          python3 - <<'PY'
           from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
-          marker='<script src="map-enhance.js"></script>'
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          marker = '<script src="map-enhance.js"></script>'
           if marker not in s:
-              s=s.replace('</body>', marker+'\n</body>')
-              p.write_text(s,encoding='utf-8')
+              s = s.replace('</body>', marker + '\n</body>')
+              p.write_text(s, encoding='utf-8')
           print('Interactive map injected into index.html')
           PY
       - name: Upload artifact
