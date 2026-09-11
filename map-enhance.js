@@ -34,7 +34,7 @@ c.addEventListener('click',e=>{if(drag)return;const w=screenToWorld(e.clientX,e.
 addEventListener('keydown',e=>{if(e.key==='+'||e.key==='=')zoom=clamp(zoom*1.2,.45,4.5);if(e.key==='-')zoom=clamp(zoom*.83,.45,4.5);if(e.key==='0'){panX=panY=0;zoom=1}});
 const oldHud=hud;hud=function(){oldHud();if(selected)refreshDetail()};
 
-// Tela inicial: a sociedade fica parada até o observador iniciar a simulação.
+// Tela inicial: a sociedade fica parada até o observador iniciar ou continuar a simulação.
 paused=true;
 const start=document.createElement('div');
 start.id='startScreen';
@@ -42,4 +42,37 @@ start.innerHTML=`<div style="position:absolute;inset:0;background:radial-gradien
 document.body.appendChild(start);
 document.getElementById('startSimulation').addEventListener('click',()=>{paused=false;start.remove();const b=document.getElementById('pause');if(b)b.textContent='PAUSE';log('SIMULAÇÃO INICIADA: os 50 habitantes começaram a agir autonomamente.');});
 log('MAPA INTERATIVO: arraste para caminhar pelo mundo, use a roda para zoom e clique em uma pessoa para observá-la.');
+})();
+
+// Persistência e controles: pausar, continuar e reiniciar nunca perdem o último estado salvo.
+(()=>{
+const KEY='MINICITY_STATE_V2';
+let saveTimer=0;
+const pauseBtn=document.getElementById('pause');
+const resetBtn=document.getElementById('reset');
+const saveBtn=document.getElementById('save');
+function pack(){return JSON.stringify({version:2,world:{...world,discoveries:[...world.discoveries],events:world.events,memory:world.memory},people:people.map(p=>({...p,knowledge:[...p.knowledge]})),nextId,simTime});}
+function saveState(reason='auto'){try{localStorage.setItem(KEY,pack());if(reason==='manual')log('ESTADO SALVO: a simulação pode ser retomada exatamente daqui.')}catch(e){console.warn('MINICITY save failed',e)}}
+function loadState(){try{const raw=localStorage.getItem(KEY);if(!raw)return false;const data=JSON.parse(raw);if(!data||data.version!==2||!data.world||!Array.isArray(data.people))return false;Object.assign(world,data.world);world.discoveries=new Set(data.world.discoveries||[]);world.events=data.world.events||[];world.memory=data.world.memory||[];people.splice(0,people.length,...data.people);for(const p of people){p.knowledge=new Set(p.knowledge||[]);p.memory=p.memory||[];p.skills=p.skills||{};p.inventory=p.inventory||{};p.relations=p.relations||{};p.beliefs=p.beliefs||[];p.property=p.property||[];}nextId=data.nextId||((people.reduce((m,p)=>Math.max(m,p.id||0),0))+1);simTime=data.simTime||0;return true}catch(e){console.warn('MINICITY load failed',e);return false}}
+const restored=loadState();
+if(restored){
+  paused=true;
+  document.getElementById('startSimulation').textContent='CONTINUAR SIMULAÇÃO';
+  document.querySelector('#startScreen div div:nth-child(3)').innerHTML='Estado anterior restaurado.<br>Os habitantes continuarão exatamente de onde a simulação foi pausada.';
+  log('ESTADO RESTAURADO: mundo, habitantes, recursos, memórias e evolução foram recuperados.');
+}
+function replaceButton(id,text,handler){const old=document.getElementById(id);if(!old)return null;const b=old.cloneNode(true);b.textContent=text;old.replaceWith(b);b.addEventListener('click',handler);return b}
+replaceButton('pause','INICIAR',()=>{paused=!paused;pauseBtnRef.textContent=paused?'CONTINUAR':'PAUSAR';if(paused){saveState('pause');log('SIMULAÇÃO PAUSADA: estado preservado.')}else{log('SIMULAÇÃO CONTINUADA: os habitantes retomaram exatamente de onde pararam.')}});
+const pauseBtnRef=document.getElementById('pause');pauseBtnRef.textContent='INICIAR';
+replaceButton('reset','REINICIAR',()=>{saveState('pause');location.reload()});
+replaceButton('save','SALVAR',()=>saveState('manual'));
+const controls=document.querySelector('.controls');
+if(controls&&!document.getElementById('newWorld')){const b=document.createElement('button');b.id='newWorld';b.textContent='NOVO MUNDO';controls.appendChild(b);b.addEventListener('click',()=>{if(!confirm('Criar um novo mundo e apagar o estado salvo?'))return;localStorage.removeItem(KEY);location.reload()})}
+// Atualiza o texto do botão da tela inicial e conecta o mesmo mecanismo de pausa/continuação.
+const startBtn=document.getElementById('startSimulation');
+if(startBtn){startBtn.addEventListener('click',()=>{pauseBtnRef.textContent='PAUSAR';saveState('auto')},{once:true})}
+setInterval(()=>{if(!paused)saveState('auto')},5000);
+addEventListener('beforeunload',()=>saveState('auto'));
+// Salva imediatamente quando a simulação é pausada pelo teclado.
+addEventListener('keydown',e=>{if(e.code==='Space'){setTimeout(()=>saveState('pause'),0)}});
 })();
