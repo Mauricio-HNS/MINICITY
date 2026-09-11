@@ -1,0 +1,40 @@
+(()=>{
+'use strict';
+const canvas=document.getElementById('world');
+if(!canvas)return;
+const ctx=canvas.getContext('2d');
+let W=innerWidth,H=innerHeight,dpr=devicePixelRatio||1,zoom=1,ox=0,oy=0,down=false,lx=0,ly=0,paused=true,started=false,frame=0;
+const KEY='MINICITY_VISUAL_STATE_V1';
+let agents=[];
+function resize(){W=innerWidth;H=innerHeight;dpr=devicePixelRatio||1;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);draw()}addEventListener('resize',resize);
+function makeAgents(){const names=['Ana','Bruno','Clara','Davi','Elena','Felipe','Gabriela','Hugo','Iara','Joao','Karina','Leo','Marta','Nuno','Olivia','Paulo','Rita','Sofia','Tiago','Vera','Yara','Zeca','Alice','Bia','Caio','Diana','Eva','Fabi','Gabi','Heitor','Ines','Julia','Lia','Miguel','Nina','Otavio','Pietro','Raquel','Sara','Theo','Ursula','Vitor','Wanda','Xavier','Yasmin','Zoe','Arthur','Beatriz','Celia','Diego','Emma'];agents=names.map((name,i)=>({id:i,name:name+'-'+String(i+1).padStart(2,'0'),x:-260+Math.random()*520,y:-170+Math.random()*340,tx:0,ty:0,phase:Math.random()*20,speed:.25+Math.random()*.55}));agents.forEach(a=>{a.tx=a.x;a.ty=a.y})}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({agents,zoom,ox,oy,started,paused}))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&Array.isArray(s.agents)&&s.agents.length===50){agents=s.agents;zoom=s.zoom||1;ox=s.ox||0;oy=s.oy||0;started=!!s.started;return true}}catch(e){}return false}
+function worldToScreen(x,y){return{x:W/2+ox+x*zoom,y:H/2+oy+y*zoom}}
+function screenToWorld(x,y){return{x:(x-W/2-ox)/zoom,y:(y-H/2-oy)/zoom}}
+function label(t,x,y,size=11){ctx.save();ctx.font='700 '+size+'px system-ui';ctx.fillStyle='rgba(245,250,245,.92)';ctx.shadowColor='#000';ctx.shadowBlur=5;ctx.fillText(t,x,y);ctx.restore()}
+function mapBase(){ctx.fillStyle='#8da97d';ctx.fillRect(0,0,W,H);ctx.save();ctx.translate(W/2+ox,H/2+oy);ctx.scale(zoom,zoom);ctx.fillStyle='#aabd96';ctx.fillRect(-750,-500,1500,1000);
+// river
+ctx.fillStyle='#4b91b1';ctx.beginPath();ctx.moveTo(-80,-500);ctx.bezierCurveTo(80,-340,-30,-210,60,-40);ctx.bezierCurveTo(150,140,-80,280,70,500);ctx.lineTo(150,500);ctx.bezierCurveTo(10,300,190,130,105,-50);ctx.bezierCurveTo(25,-220,170,-340,65,-500);ctx.closePath();ctx.fill();
+// forest
+ctx.fillStyle='#628b58';ctx.beginPath();ctx.arc(-330,-190,180,0,Math.PI*2);ctx.fill();for(let i=0;i<95;i++){let a=i*2.399,r=25+(i*17)%145,x=-330+Math.cos(a)*r,y=-190+Math.sin(a)*r;ctx.fillStyle=i%3?'#3e7448':'#507d4d';ctx.beginPath();ctx.arc(x,y,5+(i%4),0,Math.PI*2);ctx.fill()}
+// lake
+ctx.fillStyle='#65a7bb';ctx.beginPath();ctx.ellipse(-30,315,105,68,0,0,Math.PI*2);ctx.fill();
+// farms
+ctx.fillStyle='#cbbd7b';ctx.fillRect(170,170,210,140);for(let i=0;i<7;i++){ctx.fillStyle=i%2?'#99aa5e':'#b4bd6b';ctx.fillRect(180+i*28,180,20,120)}
+// mine
+ctx.fillStyle='#777e73';ctx.fillRect(-360,170,135,140);ctx.fillStyle='#4c544d';ctx.fillRect(-345,188,105,104);
+// roads
+ctx.lineCap='round';ctx.strokeStyle='#e6ddc7';ctx.lineWidth=18;[[[-520,0],[520,0]],[[0,-450],[0,450]],[[-260,125],[270,125]],[[-280,-210],[280,225]]].forEach(r=>{ctx.beginPath();ctx.moveTo(...r[0]);ctx.lineTo(...r[1]);ctx.stroke()});
+ctx.strokeStyle='#a59e88';ctx.lineWidth=2;[[[-520,0],[520,0]],[[0,-450],[0,450]],[[-260,125],[270,125]],[[-280,-210],[280,225]]].forEach(r=>{ctx.beginPath();ctx.moveTo(...r[0]);ctx.lineTo(...r[1]);ctx.stroke()});
+// houses
+for(let i=0;i<10;i++){let a=i*Math.PI*2/10,r=45+(i%3)*25,x=Math.cos(a)*r,y=Math.sin(a)*r;ctx.fillStyle='#eee6d1';ctx.fillRect(x-14,y-10,28,20);ctx.fillStyle='#a96749';ctx.fillRect(x-15,y-12,30,6);ctx.fillStyle='#654b3e';ctx.fillRect(x-3,y+2,6,8)}
+label('FLORESTA',-405,-355,13);label('RIO',95,-100,13);label('VILA',-30,-65,13);label('FAZENDAS',180,335,13);label('MINA',-350,345,13);label('LAGO',-55,405,13);ctx.restore()}
+function draw(){mapBase();for(const a of agents){const p=worldToScreen(a.x,a.y);ctx.beginPath();ctx.fillStyle='#253b2e';ctx.arc(p.x,p.y-6,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#c39470';ctx.fillRect(p.x-4,p.y,8,11)}const n=agents.length;ctx.fillStyle='rgba(5,12,8,.84)';ctx.fillRect(12,H-72,330,58);label('MINICITY — SOCIEDADE ARTIFICIAL',24,H-48,12);label('50 habitantes · mundo persistente · mapa ativo',24,H-27,10);label('ZOOM '+zoom.toFixed(2)+'×',W-105,H-24,10);}
+function tick(){if(!paused&&started){for(const a of agents){a.phase+=.016*a.speed;if(Math.random()<.004){a.tx=Math.max(-650,Math.min(650,a.x+(Math.random()-.5)*180));a.ty=Math.max(-400,Math.min(400,a.y+(Math.random()-.5)*150))}const dx=a.tx-a.x,dy=a.ty-a.y,d=Math.hypot(dx,dy)||1;a.x+=dx/d*.65*a.speed;a.y+=dy/d*.65*a.speed}}draw();frame=requestAnimationFrame(tick)}
+function button(text,x,y,w,fn){const b=document.createElement('button');b.textContent=text;b.style.cssText='position:fixed;z-index:10001;top:'+y+'px;left:'+x+'px;width:'+w+'px;padding:9px 12px;background:#0b1b10;color:#e8f4e8;border:1px solid #416748;border-radius:8px;font:700 11px system-ui;cursor:pointer';b.onclick=fn;document.body.appendChild(b);return b}
+const has=load();if(!has)makeAgents();resize();
+const veil=document.createElement('div');veil.style.cssText='position:fixed;inset:0;z-index:10000;background:rgba(2,7,4,.90);display:flex;align-items:center;justify-content:center;font-family:system-ui';veil.innerHTML='<div style="width:min(560px,90vw);padding:34px;text-align:center;background:#07110c;border:1px solid #35583c;border-radius:18px;box-shadow:0 30px 100px #000"><div style="font-size:12px;letter-spacing:.3em;color:#9bd2a0;font-weight:800">MINICITY</div><div style="font-size:30px;font-weight:800;margin:10px 0;color:#f0f7f0">SOCIEDADE ARTIFICIAL</div><div style="font-size:13px;line-height:1.7;color:#a9baa9">'+(has?'Estado anterior preservado. Os 50 habitantes estão no mesmo mundo salvo.':'50 habitantes. 10 casas. Rio, floresta, lago, fazendas e mina. A sociedade começa sem profissões pré-programadas.')+'</div><button id="go" style="margin-top:24px;padding:14px 30px;border:0;border-radius:10px;background:#2f7d3d;color:#fff;font-weight:800;cursor:pointer">'+(has?'CONTINUAR SIMULAÇÃO':'INICIAR SIMULAÇÃO')+'</button></div>';document.body.appendChild(veil);veil.querySelector('#go').onclick=()=>{started=true;paused=false;veil.remove();save()};
+button('PAUSAR',12,12,92,()=>{paused=!paused;event.currentTarget.textContent=paused?'CONTINUAR':'PAUSAR';save()});button('NOVO MUNDO',112,12,110,()=>{if(confirm('Criar um novo mundo? O estado salvo atual será substituído.')){localStorage.removeItem(KEY);makeAgents();started=true;paused=false;save();location.reload()}});button('SALVAR',232,12,82,()=>save());
+canvas.addEventListener('mousedown',e=>{down=true;lx=e.clientX;ly=e.clientY});addEventListener('mouseup',()=>down=false);canvas.addEventListener('mousemove',e=>{if(down){ox+=e.clientX-lx;oy+=e.clientY-ly;lx=e.clientX;ly=e.clientY;draw()}});canvas.addEventListener('wheel',e=>{e.preventDefault();zoom=Math.max(.45,Math.min(4.5,zoom*(e.deltaY<0?1.15:.87)));draw();save()},{passive:false});canvas.addEventListener('click',e=>{if(down)return;const w=screenToWorld(e.clientX,e.clientY);let best=null,bd=18/zoom;for(const a of agents){const d=Math.hypot(w.x-a.x,w.y-a.y);if(d<bd){bd=d;best=a}}if(best){label('');const old=document.getElementById('person-card');if(old)old.remove();const card=document.createElement('div');card.id='person-card';card.style.cssText='position:fixed;right:14px;top:70px;z-index:9998;width:250px;padding:14px;background:rgba(7,17,12,.94);border:1px solid #416748;border-radius:12px;color:#e8f4e8;font:12px system-ui';card.innerHTML='<b>'+best.name+'</b><hr style="border-color:#29452f"><div>Habitante '+(best.id+1)+' de 50</div><div>Estado: '+(paused?'pausado':'ativo')+'</div><div>Posição: '+Math.round(best.x)+', '+Math.round(best.y)+'</div><div>Aprendizado: ativo</div><div>Memória: persistente</div>';document.body.appendChild(card)}});tick();
+})();
